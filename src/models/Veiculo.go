@@ -1,31 +1,43 @@
 package models
 
 import (
-	"fmt"
-	"math"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 type Vehicle struct {
-    ID int
+	ID      int
+	entered bool
+	exited  bool
+	mu      sync.Mutex
 }
 
 func NewVehicle(id int) *Vehicle {
-    return &Vehicle{ID: id}
+	return &Vehicle{
+		ID: id,
+	}
 }
 
-func (v *Vehicle) EnterParking(p *Parking) {
-    maxAttempts := 10
-    for attempt := 0; attempt < maxAttempts; attempt++ {
-        if p.EnterVehicle(v.ID) {
-            time.Sleep(time.Duration(rand.Intn(3)+3) * time.Second)
-            p.ExitVehicle(v.ID)
-            return
-        }
-        wait := time.Duration(math.Pow(2, float64(attempt))) * time.Second
-        jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
-        time.Sleep(wait + jitter)
-    }
-    fmt.Printf("Vehículo %d no pudo entrar al estacionamiento\n", v.ID)
+func (v *Vehicle) EnterParking(p *Parking) bool {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.entered || v.exited {
+		return false
+	}
+
+	if p.EnterVehicle(v.ID) {
+		v.entered = true
+
+		parkingTime := time.Duration(rand.Intn(4)+2) * time.Second
+		time.Sleep(parkingTime)
+
+		p.ExitVehicle(v.ID)
+
+		v.exited = true
+		return true
+	}
+
+	return false
 }

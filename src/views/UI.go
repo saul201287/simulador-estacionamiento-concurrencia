@@ -13,7 +13,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-
 type UI struct {
 	window         fyne.Window
 	parking        *models.Parking
@@ -25,7 +24,6 @@ type UI struct {
 	mu             sync.Mutex
 }
 
-
 func NewUI(window fyne.Window, parking *models.Parking) *UI {
 	ui := &UI{
 		window:         window,
@@ -35,7 +33,7 @@ func NewUI(window fyne.Window, parking *models.Parking) *UI {
 		progressBar:    widget.NewProgressBar(),
 		vehicleCounter: widget.NewLabel("Vehículos en espera: 0"),
 	}
-	
+
 	ui.parking.AddObserver(ui)
 	ui.buildUI()
 	return ui
@@ -75,15 +73,15 @@ func (ui *UI) UpdateAvailableSpaces() {
 		rect, ok := child.(*canvas.Rectangle)
 		if ok {
 			if ui.isSpaceOccupied(i) {
-				rect.FillColor = color.NRGBA{R: 255, A: 255} 
+				rect.FillColor = color.NRGBA{R: 255, A: 255}
 			} else {
-				rect.FillColor = color.NRGBA{G: 128, A: 255} 
+				rect.FillColor = color.NRGBA{G: 128, A: 255}
 			}
 			rect.Refresh()
 		}
 	}
 
-	waitingVehicles := 100 - ui.parking.Occupied 
+	waitingVehicles := 100 - ui.parking.Occupied
 	ui.vehicleCounter.SetText(fmt.Sprintf("Vehículos en espera: %d", waitingVehicles))
 
 	ui.window.Content().Refresh()
@@ -112,4 +110,16 @@ func (ui *UI) StartVehicle(id int) {
 		time.Sleep(3 * time.Second)
 		ui.parking.ExitVehicle(id)
 	}()
+}
+
+func CreateCompletedScene() fyne.CanvasObject {
+	title := widget.NewLabel("Simulación de Estacionamiento Completada")
+	title.TextStyle = fyne.TextStyle{Bold: true}
+
+	description := widget.NewLabel("Todos los vehículos han completado su ciclo.")
+
+	return container.NewVBox(
+		title,
+		description,
+	)
 }
