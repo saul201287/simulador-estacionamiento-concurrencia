@@ -44,17 +44,15 @@ func (ps *ParkingScene) Start() {
                 v.EnterParking(ps.parking)
             }(vehicle)
             
-            time.Sleep(200 * time.Millisecond) // Intervalos más cortos
+            time.Sleep(300 * time.Millisecond) 
         }
         
         wg.Wait()
         close(ps.done)
     }()
 
-    // Opcional: Manejar finalización
     go func() {
         <-ps.done
         fmt.Println("Simulación completada")
-        // Actualizar UI o realizar acciones finales
     }()
 }

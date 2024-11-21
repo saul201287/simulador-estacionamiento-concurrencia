@@ -10,7 +10,7 @@ type Parking struct {
     mu           sync.Mutex
     Vehicles     map[int]bool
     observers    []Observer
-    parkingSlots chan struct{} // Canal para limitar la cantidad de vehículos
+    parkingSlots chan struct{}
 }
 
 func NewParking(capacity int) *Parking {
@@ -18,18 +18,16 @@ func NewParking(capacity int) *Parking {
         Capacity:     capacity,
         Occupied:     0,
         Vehicles:     make(map[int]bool),
-        parkingSlots: make(chan struct{}, capacity), // Canal con capacidad igual al del estacionamiento
+        parkingSlots: make(chan struct{}, capacity),
     }
 }
 
-// Intentar ingresar un vehículo al estacionamiento
 func (p *Parking) EnterVehicle(id int) bool {
     p.mu.Lock()
     defer p.mu.Unlock()
 
-    // Si hay espacio disponible, el vehículo puede entrar
     if p.Occupied < p.Capacity {
-        p.parkingSlots <- struct{}{} // Tomar un "slot" del canal
+        p.parkingSlots <- struct{}{} 
         p.Vehicles[id] = true
         p.Occupied++
         p.notifyObservers()
@@ -39,7 +37,7 @@ func (p *Parking) EnterVehicle(id int) bool {
     return false
 }
 
-// Sacar un vehículo y liberar su espacio
+
 func (p *Parking) ExitVehicle(id int) {
     p.mu.Lock()
     defer p.mu.Unlock()
@@ -47,7 +45,7 @@ func (p *Parking) ExitVehicle(id int) {
     if p.Vehicles[id] {
         delete(p.Vehicles, id)
         p.Occupied--
-        <-p.parkingSlots // Liberar un "slot" del canal
+        <-p.parkingSlots 
         p.notifyObservers()
     }
 }
