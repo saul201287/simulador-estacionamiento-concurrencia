@@ -1,16 +1,20 @@
 package scenes
 
 import (
-    "AppFyne/src/models"
-    "AppFyne/src/views"
-    "time"
-    "fyne.io/fyne/v2"
+	"AppFyne/src/models"
+	"AppFyne/src/views"
+	"fmt"
+	"sync"
+	"time"
+
+	"fyne.io/fyne/v2"
 )
 
 type ParkingScene struct {
-    window fyne.Window
-    parking *models.Parking
-    ui      *views.UI
+    window   fyne.Window
+    parking  *models.Parking
+    ui       *views.UI
+    done     chan struct{}
 }
 
 func NewParkingScene(window fyne.Window, parking *models.Parking) *ParkingScene {
@@ -22,13 +26,35 @@ func NewParkingScene(window fyne.Window, parking *models.Parking) *ParkingScene 
     }
 }
 
+
+
 func (ps *ParkingScene) Start() {
+    ps.done = make(chan struct{})
+    vehicleCount := 100
+    
     go func() {
-        for i := 1; i <= 100; i++ {
+        var wg sync.WaitGroup
+        for i := 1; i <= vehicleCount; i++ {
+            wg.Add(1)
             vehicle := models.NewVehicle(i)
-            ps.ui.StartVehicle(vehicle.ID)
-            go vehicle.EnterParking(ps.parking) // Cada vehículo en su propia goroutine
-            time.Sleep(2 * time.Second) // Los vehículos llegan con intervalos de 2 segundos
+            
+            go func(v *models.Vehicle) {
+                defer wg.Done()
+                ps.ui.StartVehicle(v.ID)
+                v.EnterParking(ps.parking)
+            }(vehicle)
+            
+            time.Sleep(200 * time.Millisecond) // Intervalos más cortos
         }
+        
+        wg.Wait()
+        close(ps.done)
+    }()
+
+    // Opcional: Manejar finalización
+    go func() {
+        <-ps.done
+        fmt.Println("Simulación completada")
+        // Actualizar UI o realizar acciones finales
     }()
 }
