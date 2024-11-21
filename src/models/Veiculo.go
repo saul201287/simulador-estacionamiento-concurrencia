@@ -1,22 +1,12 @@
 package models
 
 import (
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
-	"sync"
-	"time"
+    "time"
+    "math/rand"
 )
 
 type Vehicle struct {
     ID int
-}
-
-type UI struct {
-	window    fyne.Window
-	parking   *Parking
-	grid      *fyne.Container
-	carImages map[int]*canvas.Image
-	mu        sync.Mutex
 }
 
 func NewVehicle(id int) *Vehicle {
@@ -24,21 +14,13 @@ func NewVehicle(id int) *Vehicle {
 }
 
 func (v *Vehicle) EnterParking(p *Parking) {
+    // Intentar ingresar al estacionamiento
     if p.EnterVehicle(v.ID) {
-        time.Sleep(3 * time.Second)
+        time.Sleep(time.Duration(rand.Intn(3)+3) * time.Second) // Estacionar entre 3 y 5 segundos
         p.ExitVehicle(v.ID)
+    } else {
+        // Si no pudo entrar, intenta nuevamente después de un tiempo
+        time.Sleep(2 * time.Second) // Intentar cada 2 segundos
+        v.EnterParking(p)
     }
-}
-func (ui *UI) UpdateAvailableSpaces() {
-    ui.mu.Lock()
-    defer ui.mu.Unlock()
-
-    // Actualizar la cuadrícula para mostrar los autos
-    for id, img := range ui.carImages {
-        if !ui.parking.Vehicles[id] { // Acceso al campo público Vehicles
-            ui.grid.Remove(img) // Quitar imagen si el auto ha salido
-            delete(ui.carImages, id)
-        }
-    }
-    ui.window.Content().Refresh()
 }

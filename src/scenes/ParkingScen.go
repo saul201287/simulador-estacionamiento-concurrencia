@@ -1,11 +1,10 @@
 package scenes
 
 import (
-	"AppFyne/src/models"
-	"AppFyne/src/views"
-	"time"
-
-	"fyne.io/fyne/v2"
+    "AppFyne/src/models"
+    "AppFyne/src/views"
+    "time"
+    "fyne.io/fyne/v2"
 )
 
 type ParkingScene struct {
@@ -24,13 +23,12 @@ func NewParkingScene(window fyne.Window, parking *models.Parking) *ParkingScene 
 }
 
 func (ps *ParkingScene) Start() {
-    // Simular ingreso de vehículos cada cierto tiempo
     go func() {
-        for i := 1; i <= 10; i++ { // Generar 10 vehículos
+        for i := 1; i <= 100; i++ {
             vehicle := models.NewVehicle(i)
             ps.ui.StartVehicle(vehicle.ID)
-            vehicle.EnterParking(ps.parking)
-            time.Sleep(2 * time.Second) // Tiempo entre ingresos
+            go vehicle.EnterParking(ps.parking) // Cada vehículo en su propia goroutine
+            time.Sleep(2 * time.Second) // Los vehículos llegan con intervalos de 2 segundos
         }
     }()
 }
