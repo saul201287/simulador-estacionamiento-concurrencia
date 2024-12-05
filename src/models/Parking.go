@@ -25,7 +25,6 @@ func (p *Parking) EnterVehicle(id int) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Verificar si hay espacio y el vehículo no ha entrado antes
 	if p.Occupied < p.Capacity && !p.Vehicles[id] {
 		p.Vehicles[id] = true
 		p.Occupied++
@@ -58,3 +57,5 @@ func (p *Parking) AddObserver(o Observer) {
 	defer p.mu.Unlock()
 	p.observers = append(p.observers, o)
 }
+
+

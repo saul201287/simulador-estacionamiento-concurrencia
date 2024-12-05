@@ -45,7 +45,7 @@ func (ui *UI) buildUI() {
 
 	for i := 0; i < rows*cols; i++ {
 		rect := canvas.NewRectangle(color.NRGBA{G: 128, A: 255})
-		rect.SetMinSize(fyne.NewSize(80, 80))
+		rect.SetMinSize(fyne.NewSize(80, 80)) 
 		ui.grid.Add(rect)
 	}
 
