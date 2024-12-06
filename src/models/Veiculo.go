@@ -19,25 +19,29 @@ func NewVehicle(id int) *Vehicle {
 	}
 }
 
-func (v *Vehicle) EnterParking(p *Parking) bool {
+func (v *Vehicle) EnterParking(p *Parking) {
 	v.mu.Lock()
-	defer v.mu.Unlock()
-
 	if v.entered || v.exited {
-		return false
+		v.mu.Unlock()
+		return
 	}
+	v.mu.Unlock()
 
-	if p.EnterVehicle(v.ID) {
+	// Intentar entrar al estacionamiento
+	if p.RequestEntry(v.ID) {
+		v.mu.Lock()
 		v.entered = true
+		v.mu.Unlock()
 
-		parkingTime := time.Duration(rand.Intn(4)+2) * time.Second
+		// Tiempo aleatorio de estacionamiento
+		parkingTime := time.Duration(rand.Intn(3)+2) * time.Second
 		time.Sleep(parkingTime)
 
+		// Salir del estacionamiento
 		p.ExitVehicle(v.ID)
 
+		v.mu.Lock()
 		v.exited = true
-		return true
+		v.mu.Unlock()
 	}
-
-	return false
 }

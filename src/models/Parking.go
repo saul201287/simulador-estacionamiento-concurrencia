@@ -5,28 +5,40 @@ import (
 )
 
 type Parking struct {
-	Capacity  int
-	Occupied  int
-	mu        sync.Mutex
-	Vehicles  map[int]bool
-	observers []Observer
+	Capacity      int
+	Occupied      int
+	mu            sync.Mutex
+	Vehicles      map[int]bool
+	observers     []Observer
+	entrance      *ParkingEntrance
+	availableCond *sync.Cond
 }
 
 func NewParking(capacity int) *Parking {
-	return &Parking{
-		Capacity:  capacity,
-		Occupied:  0,
-		Vehicles:  make(map[int]bool),
-		observers: []Observer{},
+	p := &Parking{
+		Capacity:   capacity,
+		Occupied:   0,
+		Vehicles:   make(map[int]bool),
+		observers:  []Observer{},
+		entrance:   NewParkingEntrance(),
 	}
+	p.availableCond = sync.NewCond(&p.mu)
+	return p
 }
 
-func (p *Parking) EnterVehicle(id int) bool {
+func (p *Parking) RequestEntry(vehicleID int) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.Occupied < p.Capacity && !p.Vehicles[id] {
-		p.Vehicles[id] = true
+	for p.Occupied >= p.Capacity {
+		p.availableCond.Wait()
+	}
+
+	p.entrance.Enter()
+	defer p.entrance.Exit()
+
+	if !p.Vehicles[vehicleID] {
+		p.Vehicles[vehicleID] = true
 		p.Occupied++
 		p.notifyObservers()
 		return true
@@ -43,9 +55,9 @@ func (p *Parking) ExitVehicle(id int) {
 		delete(p.Vehicles, id)
 		p.Occupied--
 		p.notifyObservers()
+		p.availableCond.Broadcast()
 	}
 }
-
 func (p *Parking) notifyObservers() {
 	for _, observer := range p.observers {
 		observer.UpdateAvailableSpaces()
