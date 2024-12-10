@@ -1,73 +1,75 @@
 package models
 
 import (
-	"sync"
+    "sync"
 )
 
 type Parking struct {
-	Capacity      int
-	Occupied      int
-	mu            sync.Mutex
-	Vehicles      map[int]bool
-	observers     []Observer
-	entrance      *ParkingEntrance
-	availableCond *sync.Cond
+    Capacity      int
+    Occupied      int
+    mu            sync.Mutex
+    Vehicles      map[int]bool
+    observers     []Observer
+    availableCond *sync.Cond
 }
 
 func NewParking(capacity int) *Parking {
-	p := &Parking{
-		Capacity:   capacity,
-		Occupied:   0,
-		Vehicles:   make(map[int]bool),
-		observers:  []Observer{},
-		entrance:   NewParkingEntrance(),
-	}
-	p.availableCond = sync.NewCond(&p.mu)
-	return p
+    p := &Parking{
+        Capacity:   capacity,
+        Occupied:   0,
+        Vehicles:   make(map[int]bool),
+        observers:  []Observer{},
+    }
+    p.availableCond = sync.NewCond(&p.mu)
+    return p
 }
 
-func (p *Parking) RequestEntry(vehicleID int) bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (p *Parking) RequestEntry(vehicleID int) int {
+    p.mu.Lock()
+    defer p.mu.Unlock()
 
-	for p.Occupied >= p.Capacity {
-		p.availableCond.Wait()
-	}
+    // Espera hasta que haya un espacio disponible
+    for p.Occupied >= p.Capacity {
+        p.availableCond.Wait()
+    }
 
-	p.entrance.Enter()
-	defer p.entrance.Exit()
+    // Encuentra un espacio vacío
+    for i := 0; i < p.Capacity; i++ {
+        if !p.Vehicles[i] { // Busca el primer espacio libre
+            p.Vehicles[i] = true
+            p.Occupied++
+            p.notifyObservers()
+            return i
+        }
+    }
 
-	if !p.Vehicles[vehicleID] {
-		p.Vehicles[vehicleID] = true
-		p.Occupied++
-		p.notifyObservers()
-		return true
-	}
-
-	return false
+    return -1 // Debe manejarse correctamente en caso de error inesperado
 }
 
-func (p *Parking) ExitVehicle(id int) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (p *Parking) ExitVehicle(spaceIndex int) {
+    p.mu.Lock()
+    defer p.mu.Unlock()
 
-	if p.Vehicles[id] {
-		delete(p.Vehicles, id)
-		p.Occupied--
-		p.notifyObservers()
-		p.availableCond.Broadcast()
-	}
+    if spaceIndex < 0 || spaceIndex >= p.Capacity {
+        return // Indice fuera de rango
+    }
+
+    if p.Vehicles[spaceIndex] {
+        delete(p.Vehicles, spaceIndex)
+        p.Occupied--
+        p.notifyObservers()
+        p.availableCond.Broadcast() // Notifica que hay un espacio libre
+    }
 }
+
 func (p *Parking) notifyObservers() {
-	for _, observer := range p.observers {
-		observer.UpdateAvailableSpaces()
-	}
+    for _, observer := range p.observers {
+        observer.UpdateAvailableSpaces()
+    }
 }
 
 func (p *Parking) AddObserver(o Observer) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.observers = append(p.observers, o)
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    p.observers = append(p.observers, o)
 }
-
-

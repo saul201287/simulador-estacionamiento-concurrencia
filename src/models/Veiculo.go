@@ -1,47 +1,42 @@
 package models
 
 import (
-	"math/rand"
-	"sync"
-	"time"
+    "math/rand"
+    "sync"
+    "time"
 )
 
 type Vehicle struct {
-	ID      int
-	entered bool
-	exited  bool
-	mu      sync.Mutex
+    ID      int
+    entered bool
+    exited  bool
+    mu      sync.Mutex
 }
 
 func NewVehicle(id int) *Vehicle {
-	return &Vehicle{
-		ID: id,
-	}
+    return &Vehicle{
+        ID: id,
+    }
 }
 
-func (v *Vehicle) EnterParking(p *Parking) {
-	v.mu.Lock()
-	if v.entered || v.exited {
-		v.mu.Unlock()
-		return
-	}
-	v.mu.Unlock()
+func (v *Vehicle) EnterParking(p *Parking) bool {
+    v.mu.Lock()
+    defer v.mu.Unlock()
 
-	// Intentar entrar al estacionamiento
-	if p.RequestEntry(v.ID) {
-		v.mu.Lock()
-		v.entered = true
-		v.mu.Unlock()
+    if v.entered || v.exited {
+        return false
+    }
 
-		// Tiempo aleatorio de estacionamiento
-		parkingTime := time.Duration(rand.Intn(3)+2) * time.Second
-		time.Sleep(parkingTime)
+    freeIndex := p.RequestEntry(v.ID)
+    if freeIndex == -1 {
+        return false
+    }
 
-		// Salir del estacionamiento
-		p.ExitVehicle(v.ID)
+    v.entered = true
+    parkingTime := time.Duration(rand.Intn(3)+2) * time.Second
+    time.Sleep(parkingTime)
 
-		v.mu.Lock()
-		v.exited = true
-		v.mu.Unlock()
-	}
+    p.ExitVehicle(freeIndex)
+    v.exited = true
+    return true
 }
